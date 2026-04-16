@@ -1,0 +1,15 @@
+[project]
+name = "craft-poc"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi[standard]>=0.135.3",
+    "langchain-community>=0.4.1",
+    "langchain-core>=1.2.30",
+    "langchain[openai]>=1.2.15",
+    "python-dotenv>=1.2.2",
+    "sse-starlette>=3.3.4",
+    "uvicorn[standard]>=0.44.0",
+]
