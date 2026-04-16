@@ -8,8 +8,18 @@ Description: Main entry point.
 License: MIT
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.api.endpoints import router
+from app.tools.predict_sales import set_model
+import joblib
 
-app = FastAPI()
+# Loading the model as a lifespan context in app booting.
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+  set_model(joblib.load('./app/models/top_sales_prediction.joblib'))
+  yield
+  set_model(None)
+
+app = FastAPI(lifespan=lifespan)
 app.include_router(router)
