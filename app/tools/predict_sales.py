@@ -82,7 +82,7 @@ def predict_sales(top_n=3, timeframe='month', frame_k=1, history_df=None) -> str
     horizon = horizons[timeframe]
 
     features = [
-      'category_encoded', 'year', 'month', 'week',
+      'category_encoded', 'year', 'month', 'week', 'day_of_week',
       'revenue_lag_1', 'revenue_lag_7', 'revenue_lag_14', 'revenue_lag_30'
     ]
 
