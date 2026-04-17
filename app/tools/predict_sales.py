@@ -46,22 +46,21 @@ def predict_sales(top_n=3, timeframe='month', frame_k=1, history_df=None) -> str
   category_sales['week'] = category_sales['date'].dt.isocalendar().week
 
   le = LabelEncoder()  # from str category to numeric encoded
-  category_sales['category_encoded'] = le.fit_transform(
-    category_sales['product_category'])
+  category_sales['category_encoded'] = le.fit_transform(category_sales['product_category'])
 
   # Create lag features for time series forecasting
   category_sales['revenue_lag_1'] = category_sales.groupby('product_category')[
-    'total_revenue'].shift(1)
+      'total_revenue'].shift(1)
   category_sales['revenue_lag_7'] = category_sales.groupby('product_category')[
-    'total_revenue'].shift(7)
+      'total_revenue'].shift(7)
   category_sales['revenue_lag_14'] = category_sales.groupby('product_category')[
-    'total_revenue'].shift(14)
+      'total_revenue'].shift(14)
   category_sales['revenue_lag_30'] = category_sales.groupby('product_category')[
-    'total_revenue'].shift(30)
+      'total_revenue'].shift(30)
 
   # Since shift() will create na to fill in when shifted.
-  category_sales = category_sales.dropna(
-    subset=['revenue_lag_1', 'revenue_lag_7', 'revenue_lag_14', 'revenue_lag_30'])
+  category_sales = category_sales.dropna(subset=[
+     'revenue_lag_1', 'revenue_lag_7', 'revenue_lag_14', 'revenue_lag_30'])
 
   horizons = {
     'week': 7*frame_k,
@@ -77,7 +76,7 @@ def predict_sales(top_n=3, timeframe='month', frame_k=1, history_df=None) -> str
 
   if _model is None:
     raise RuntimeError("Model has not been loaded. Call set_model() at startup.")
-  
+
   history_df = history_df.sort_values(['product_category', 'date']).copy()
   horizon = horizons[timeframe]
 
@@ -126,25 +125,21 @@ def predict_sales(top_n=3, timeframe='month', frame_k=1, history_df=None) -> str
       revenue_history.append(predicted_revenue)
       current_date = future_date
 
-    forecast_df = pd.DataFrame(all_forecasts)
+  forecast_df = pd.DataFrame(all_forecasts)
 
-    top_sales = (
-      forecast_df.groupby('product_category', as_index=False)['predicted_revenue']
-      .sum()
-      .sort_values('predicted_revenue', ascending=False)  # type: ignore
-      .head(top_n)
-      .reset_index(drop=True)
-    )
+  top_sales = (
+    forecast_df.groupby('product_category', as_index=False)['predicted_revenue']
+    .sum()
+    .sort_values('predicted_revenue', ascending=False)  # type: ignore
+    .head(top_n)
+    .reset_index(drop=True)
+  )
 
-    return top_sales
+  return top_sales
 
-    # NOTES: Noticed llm generated out tokens like "next3". The below didn't help 
-    # A system instruction like 'next3->'next 3' didn't work either.
-    # I ended up fixing in stream_generator (agents.py) just before the finalized
-    # SSE text is sent to the browser.
-
-    # lines = [f"Top {top_n} predicted sales by category for the next {frame_k} {timeframe}(s):"]
+    # lines = [
+    #     f"Top {top_n} predicted sales by category for the next {frame_k} {timeframe}(s):"]
     # for i, row in top_sales.iterrows():
-    #   lines.append(f"  {i + 1}. {row['product_category']}: ${row['predicted_revenue']:,.2f}")
-
+    #     lines.append(
+    #         f"  {i + 1}. {row['product_category']}: ${row['predicted_revenue']:,.2f}")
     # return "\n".join(lines)
