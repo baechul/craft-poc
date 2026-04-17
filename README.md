@@ -10,3 +10,4 @@ The key techstacks include FastAPI, LangChain, OpenAI LLM, and SSE.
 uv run uvicorn app.main:app --reload
 ```
 4. Open http://127.0.0.1:8000 for a simple Chat UI.
+5. Enter like "How's my top 3 sales by category for the next 3 months?"

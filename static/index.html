@@ -9,6 +9,7 @@
         .ai { align-self: flex-start; background: #e9e9eb; color: #333; }
         #input-area { padding: 20px 20px 2px; background: white; border-top: 1px solid #ddd; display: flex; gap: 10px; }
         #status { padding: 4px 20px 20px; background: white; font-size: 0.85em; color: #888; min-height: 1.2em; }
+        #status.error { color: #c0392b; }
         input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
         button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
     </style>
@@ -16,10 +17,10 @@
 <body>
     <div id="chat-container"></div>
     <div id="input-area">
-        <input type="text" id="userInput" placeholder="(Craft for Intuit) Type your message..." onkeypress="if(event.key==='Enter') sendMessage()">
+        <input type="text" id="userInput" placeholder="(Craft POC for Intuit) Type your message... (example: How's my top 3 sales by category for the next 3 months?)" onkeypress="if(event.key==='Enter') sendMessage()">
         <button onclick="sendMessage()">Send</button>
     </div>
-    <div id="status">Thinking...</div>
+    <div id="status"></div>
 
     <script>
       async function sendMessage() {
@@ -63,14 +64,21 @@
               if (dataStr === '[DONE]') break;
               try {
                 const data = JSON.parse(dataStr);
-                if (data.content) status.textContent = 'Responding...';
-                aiMsgDiv.innerText += data.content;
-                container.scrollTop = container.scrollHeight;
+                if (data.error) {
+                  status.textContent = `Error: ${data.error}`;
+                  status.classList.add('error');
+                  aiMsgDiv.remove();
+                } else {
+                  if (data.content) status.textContent = 'Responding...';
+                  aiMsgDiv.innerText += data.content;
+                  container.scrollTop = container.scrollHeight;
+                }
               } catch (e) {}
             }
           }
         }
-        status.textContent = '';
+        if (!status.classList.contains('error')) status.textContent = '';
+        status.classList.remove('error');
       }
     </script>
 </body>

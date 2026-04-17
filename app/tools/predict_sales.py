@@ -24,7 +24,6 @@ def set_model(model) -> None:
 @tool("predict_sales", return_direct=False)
 def predict_sales(top_n=3, timeframe='month', frame_k=1, history_df=None) -> str:
     """Predict the N top sales by category for the next K units of time frame (week, month, year)."""
-
     # Read a partial columns required for prediction instead of full read
     df = pd.read_csv('app/models/sales.csv', usecols=['date', 'product_category', 'total_revenue'])
 
@@ -136,4 +135,15 @@ def predict_sales(top_n=3, timeframe='month', frame_k=1, history_df=None) -> str
       .reset_index(drop=True)
     )
 
-    return forecast_df, top_sales
+    return top_sales
+
+    # NOTES: Noticed llm generated out tokens like "next3". The below didn't help 
+    # A system instruction like 'next3->'next 3' didn't work either.
+    # I ended up fixing in stream_generator (agents.py) just before the finalized
+    # SSE text is sent to the browser.
+
+    # lines = [f"Top {top_n} predicted sales by category for the next {frame_k} {timeframe}(s):"]
+    # for i, row in top_sales.iterrows():
+    #   lines.append(f"  {i + 1}. {row['product_category']}: ${row['predicted_revenue']:,.2f}")
+
+    # return "\n".join(lines)
