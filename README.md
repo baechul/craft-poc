@@ -13,6 +13,10 @@ uv run uvicorn app.main:app --reload
 4. Open http://127.0.0.1:8000 for a simple Chat UI.
 5. Enter like "How's my top 3 sales by category for the next 3 months?"
 
+## LGBM/XGB Models 
+The Light Gradient Boosting model used in the app was generated in other project.
+Check https://github.com/baechul/craft-poc-model to see how the model was trained and generated for this app.
+
 ## Screenshots
 <img src="./images/screen2.png" width="600" height="auto">
 
