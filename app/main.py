@@ -17,7 +17,7 @@ import joblib
 # Loading the model as a lifespan context in app booting.
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-  set_model(joblib.load('./app/models/top_sales_prediction.joblib'))
+  set_model(joblib.load('./app/models/top_sales_prediction_xgb.joblib'))
   yield
   set_model(None)
 
