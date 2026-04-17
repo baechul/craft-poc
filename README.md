@@ -2,6 +2,10 @@
 
 A proof-of-concept application that combines a **LightGBM sales forecasting model** with a **GPT-4.1-mini agent** to answer natural-language queries about sales predictions. Built with FastAPI, LangChain, and Server-Sent Events (SSE) for real-time streaming responses.
 
+## System Architecture
+<img src="./images/architecture.png" width="900" height="auto">
+
+
 ## Tech Stack
 
 | Layer           | Technology                              |
