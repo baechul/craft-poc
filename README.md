@@ -70,6 +70,63 @@ The LightGBM model was trained separately on historical sales data with lag feat
 
 For details on model training and generation, see the companion repository: [baechul/craft-poc-model](https://github.com/baechul/craft-poc-model).
 
+## Sales Prediction Calculation Algorithm
+
+The prediction pipeline implemented in [app/tools/predict_sales.py](app/tools/predict_sales.py) runs through the following stages:
+
+### 1. Data Ingestion
+
+Historical sales data is read from `app/models/sales.csv`, loading only the three columns required for inference (`date`, `product_category`, `total_revenue`) to minimise memory usage.
+
+### 2. Aggregation
+
+Daily revenue is summed per product category to produce a clean category-date time series, sorted chronologically within each category.
+
+### 3. Feature Engineering
+
+The following features are derived to match what the model was trained on:
+
+| Feature                 | Description                                           |
+| ----------------------- | ----------------------------------------------------- |
+| `year`, `month`, `week` | Calendar components extracted from the date           |
+| `day_of_week`           | Day index (0 = Monday, 6 = Sunday)                    |
+| `category_encoded`      | Numeric label encoding of the product category string |
+| `revenue_lag_1`         | Revenue 1 day prior                                   |
+| `revenue_lag_7`         | Revenue 7 days prior                                  |
+| `revenue_lag_14`        | Revenue 14 days prior                                 |
+| `revenue_lag_30`        | Revenue 30 days prior                                 |
+
+Rows with any missing lag values (caused by the shift operation at the start of the series) are dropped before forecasting begins.
+
+### 4. Iterative Multi-Step Forecasting
+
+For each product category the model performs a **rolling one-step-ahead forecast** over the requested horizon:
+
+$$\hat{y}_{t+1} = f\bigl(\text{category}, \text{calendar}_{t+1}, \hat{y}_t, \hat{y}_{t-6}, \hat{y}_{t-13}, \hat{y}_{t-29}\bigr)$$
+
+where $f$ is the trained LightGBM model. At each step:
+
+1. A feature row is constructed from the next calendar date and the lag window of the accumulated revenue history.
+I selected four lag checkpoints (1, 7, 14, 30 days back) for the model to be trained on. For example, 
+revernue_lag_7 is used to measure the distance from the prediction target date (t+1) so (t+1)-7 looks back 7 days ago from (t+1).
+(t+1)-7 = t-6 which is used in $\hat{y}_{t-6}$  
+2. The model predicts the next day's revenue; negative predictions are clamped to `0.0`.
+3. The predicted value is appended to the rolling history so subsequent steps can reference it as a lag feature.
+
+The horizon length is determined by the requested timeframe:
+
+| Timeframe | Horizon (days) |
+| --------- | -------------- |
+| `week`    | 7 x k          |
+| `month`   | 30 x k         |
+| `year`    | 365 x k        |
+
+where k is `frame_k` (the number of timeframe units requested).
+
+### 5. Ranking & Output
+
+All per-day forecasts are aggregated by summing predicted revenue per category over the full horizon. The top `N` categories by total projected revenue are returned, ranked in descending order.
+
 ## Screenshots
 
 <img src="./images/screen2.png" width="600" height="auto">
