@@ -12,3 +12,10 @@ uv run uvicorn app.main:app --reload
 ```
 4. Open http://127.0.0.1:8000 for a simple Chat UI.
 5. Enter like "How's my top 3 sales by category for the next 3 months?"
+
+## Screenshots
+<img src="./images/screen2
+.png" width="600" height="auto">
+
+<img src="./images/screen3
+.png" width="600" height="auto">
