@@ -8,17 +8,17 @@ Description: Routers for various endpoints
 License: MIT
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
 from app.services.agents import stream_generator
+from app.schemas.prediction import ChatRequest, PredictionRequest, PredictionResponse, PredictionResult
+from app.tools.predict_sales import run_prediction
 
 router = APIRouter()
 
-# Simple Pydantic model for the incoming request
-class ChatRequest(BaseModel):
-    message: str
-
+# The followings demonstrate backend endpoints for both Chat and Rest clients.
+# SSE Stream for Chat Client Support 
 @router.post(
   "/chat",
   summary="Chat with the sales prediction agent",
@@ -30,12 +30,46 @@ class ChatRequest(BaseModel):
 async def chat_endpoint(request: ChatRequest):
     return StreamingResponse(stream_generator(request.message), media_type="text/event-stream")
 
+# REST for API Client Support
+@router.post(
+  "/predict",
+  response_model=PredictionResponse,
+  summary="Predict top sales by category",
+  description="Returns the top N predicted revenue categories for the next K units of the given timeframe. "
+  "Uses the pre-loaded LightGBM model loaded at startup.",
+  response_description="Ranked list of categories with their total predicted revenue.",
+)
+async def predict_endpoint(request: PredictionRequest):
+  try:
+    top_sales = run_prediction(
+      top_n=request.top_n,
+      timeframe=request.timeframe,
+      frame_k=request.frame_k,
+    )
+  except RuntimeError as e:
+    raise HTTPException(status_code=503, detail=str(e))
+  except ValueError as e:
+    raise HTTPException(status_code=422, detail=str(e))
+
+  predictions = [
+    PredictionResult(category=row["product_category"], predicted_revenue=row["predicted_revenue"])
+    for _, row in top_sales.iterrows()
+  ]
+  return PredictionResponse(
+    top_n=request.top_n,
+    timeframe=request.timeframe,
+    frame_k=request.frame_k,
+    predictions=predictions,
+  )
+
+# For demo purpose I am using the same backend server for the frontend as well.
+# In real prod application, I would move this to a frontend app.   
 @router.get(
-    "/",
-    summary="Demo chat UI",
-    description="Serves the static `index.html` demo chat window. "
-    "Open http://127.0.0.1:8000 in a browser to interact with the agent.",
-    response_description="The static HTML page for the demo chat interface.",
+  "/",
+  summary="Demo chat UI",
+  description="Serves the static `index.html` demo chat window. "
+  "Open http://127.0.0.1:8000 in a browser to interact with the agent.",
+  response_description="The static HTML page for the demo chat interface.",
 )
 async def get_index():
-    return FileResponse("static/index.html")
+  return FileResponse("static/index.html")

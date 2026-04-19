@@ -30,8 +30,6 @@ agent = create_agent(
 # Filters astream_events to only forward on_chat_model_stream events (token-level output).
 # Each yielded string follows the SSE protocol: "data: <json>\n\n".
 # Yields "data: [DONE]\n\n" at the end to signal stream completion to the client.
-
-
 async def stream_generator(user_input: str) -> AsyncIterable[str]:
   try:
     full_response = []
