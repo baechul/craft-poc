@@ -13,11 +13,22 @@ from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 
 _model = None
+_le = None
+
+# Feature cols trained. We have to use the same for prediction.
+# 'category_encoded', 'year', 'month', 'week', 'day_of_week',
+# 'revenue_lag_1', 'revenue_lag_7', 'revenue_lag_14', 'revenue_lag_30'
+_feature_columns = None 
 
 # Called when the app startup and shutdown (main.py)
-def set_model(model) -> None:
+def set_model(model_artifact) -> None:
   global _model
-  _model = model
+  global _le
+  global _feature_columns
+  _model = model_artifact['model']
+  _le = model_artifact['le']
+  _feature_columns = model_artifact['feature_columns']
+
 
 # Tool: called by the agent when it decides a sales prediction is needed.
 # Returns a plain string result that the agent incorporates into its final response.
@@ -26,7 +37,7 @@ def predict_sales(top_n=3, timeframe='month', frame_k=1, history_df=None) -> str
   """Predict the N top sales by category for the next K units of time frame (week, month, year)."""
 
   # Read a partial columns required for prediction instead of full read
-  df = pd.read_csv('app/models/sales.csv', usecols=['date', 'product_category', 'total_revenue'])
+  df = pd.read_csv('app/data/sales.csv', usecols=['date', 'product_category', 'total_revenue'])
 
   # Convert date column to datetime
   if 'date' in df.columns:
@@ -44,23 +55,16 @@ def predict_sales(top_n=3, timeframe='month', frame_k=1, history_df=None) -> str
   category_sales['year'] = category_sales['date'].dt.year
   category_sales['month'] = category_sales['date'].dt.month
   category_sales['week'] = category_sales['date'].dt.isocalendar().week
-
-  le = LabelEncoder()  # from str category to numeric encoded
-  category_sales['category_encoded'] = le.fit_transform(category_sales['product_category'])
+  category_sales['category_encoded'] = _le.transform(category_sales['product_category'])
 
   # Create lag features for time series forecasting
-  category_sales['revenue_lag_1'] = category_sales.groupby('product_category')[
-      'total_revenue'].shift(1)
-  category_sales['revenue_lag_7'] = category_sales.groupby('product_category')[
-      'total_revenue'].shift(7)
-  category_sales['revenue_lag_14'] = category_sales.groupby('product_category')[
-      'total_revenue'].shift(14)
-  category_sales['revenue_lag_30'] = category_sales.groupby('product_category')[
-      'total_revenue'].shift(30)
+  for lag in [1, 7, 14, 30]:
+    category_sales[f'revenue_lag_{lag}'] = category_sales.groupby('product_category')[
+      'total_revenue'].shift(lag)
 
   # Since shift() will create na to fill in when shifted.
   category_sales = category_sales.dropna(subset=[
-     'revenue_lag_1', 'revenue_lag_7', 'revenue_lag_14', 'revenue_lag_30'])
+    'revenue_lag_1', 'revenue_lag_7', 'revenue_lag_14', 'revenue_lag_30'])
 
   horizons = {
     'week': 7*frame_k,
@@ -80,13 +84,7 @@ def predict_sales(top_n=3, timeframe='month', frame_k=1, history_df=None) -> str
   history_df = history_df.sort_values(['product_category', 'date']).copy()
   horizon = horizons[timeframe]
 
-  features = [
-    'category_encoded', 'year', 'month', 'week', 'day_of_week',
-    'revenue_lag_1', 'revenue_lag_7', 'revenue_lag_14', 'revenue_lag_30'
-  ]
-
   all_forecasts = []
-
   for category, group in history_df.groupby('product_category'):
     group = group.sort_values('date').copy()
     revenue_history = group['total_revenue'].tolist()
@@ -101,8 +99,11 @@ def predict_sales(top_n=3, timeframe='month', frame_k=1, history_df=None) -> str
             return revenue_history[-lag]
         return revenue_history[-1]
 
+      # TODO: For now, I am using the hard-coded feature cols. Should this be dynamic out of _feature_columns
+      # The loaded model can only predict a single day based on lags (upto 30 days)
+      # Hence using for-loop, we have to keep adding a day prediction upto the requested horizon.
       row = pd.DataFrame([{
-        'category_encoded': category_code,
+        'category_encoded': category_code,  
         'year': future_date.year,
         'month': future_date.month,
         'week': int(future_date.isocalendar().week),
@@ -111,7 +112,7 @@ def predict_sales(top_n=3, timeframe='month', frame_k=1, history_df=None) -> str
         'revenue_lag_7': lag_value(7),
         'revenue_lag_14': lag_value(14),
         'revenue_lag_30': lag_value(30),
-      }], columns=features)
+      }], columns=_feature_columns)
 
       predicted_revenue = max(float(_model.predict(row)[0]), 0.0)
 
