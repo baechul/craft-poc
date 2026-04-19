@@ -29,7 +29,6 @@ def set_model(model_artifact) -> None:
   _le = model_artifact['le']
   _feature_columns = model_artifact['feature_columns']
 
-
 # Tool: called by the agent when it decides a sales prediction is needed.
 # Returns a plain string result that the agent incorporates into its final response.
 @tool("predict_sales", return_direct=False)
@@ -138,9 +137,9 @@ def predict_sales(top_n=3, timeframe='month', frame_k=1, history_df=None) -> str
 
   return top_sales
 
-    # lines = [
-    #     f"Top {top_n} predicted sales by category for the next {frame_k} {timeframe}(s):"]
-    # for i, row in top_sales.iterrows():
-    #     lines.append(
-    #         f"  {i + 1}. {row['product_category']}: ${row['predicted_revenue']:,.2f}")
-    # return "\n".join(lines)
+  # lines = [
+  #     f"Top {top_n} predicted sales by category for the next {frame_k} {timeframe}(s):"]
+  # for i, row in top_sales.iterrows():
+  #     lines.append(
+  #         f"  {i + 1}. {row['product_category']}: ${row['predicted_revenue']:,.2f}")
+  # return "\n".join(lines)
