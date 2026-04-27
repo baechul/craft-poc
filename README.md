@@ -16,7 +16,7 @@ Note that the same sales prediction service supports both Chat (SSE streaming) a
 | LLM             | OpenAI GPT-4.1-mini                     |
 | ML Model        | LightGBM (sales forecasting)            |
 | Streaming       | Server-Sent Events (SSE)                |
-| REST API        | FastAPI `POST /predict` endpoint        |
+| REST API        | FastAPI `POST /predict/sales` endpoint  |
 | Config          | Pydantic Settings, python-dotenv        |
 | Package Manager | `uv`                                    |
 
@@ -35,7 +35,7 @@ app/
 
 The agent follows a **ReAct loop**: it receives a natural-language question, decides whether to invoke the `predict_sales` tool, interprets the model output, and streams a formatted answer back to the client via SSE.
 
-The same underlying prediction logic is also exposed as a dedicated **REST endpoint** (`POST /predict`) for direct programmatic access, bypassing the agent entirely.
+The same underlying prediction logic is also exposed as a dedicated **REST endpoint** (`POST /predict/sales`) for direct programmatic access, bypassing the agent entirely.
 
 ## Prerequisites
 
@@ -78,7 +78,7 @@ Navigate to [http://127.0.0.1:8000](http://127.0.0.1:8000) and ask a sales quest
 You can also call the prediction model directly without the agent:
 
 ```bash
-curl -X POST http://127.0.0.1:8000/predict \
+curl -X POST http://127.0.0.1:8000/predict/sales \
   -H "Content-Type: application/json" \
   -d '{"top_n": 3, "timeframe": "month", "frame_k": 1}'
 ```
@@ -98,9 +98,68 @@ Example response:
 }
 ```
 
+**6. Predict top products (alternative endpoint)**
+
+You can also retrieve top-selling products instead of revenue by category:
+
+```bash
+curl -X POST http://127.0.0.1:8000/predict/products \
+  -H "Content-Type: application/json" \
+  -d '{"top_p": 5, "timeframe": "month", "frame_k": 1}'
+```
+
+Example response:
+
+```json
+{
+  "top_p": 5,
+  "timeframe": "month",
+  "frame_k": 1,
+  "predictions": [
+    {
+      "product_name": "Wireless Earbuds",
+      "product_category": "Electronics",
+      "predicted_units": 1250
+    },
+    {
+      "product_name": "USB-C Cable",
+      "product_category": "Electronics",
+      "predicted_units": 980
+    },
+    {
+      "product_name": "Phone Case",
+      "product_category": "Electronics",
+      "predicted_units": 875
+    },
+    {
+      "product_name": "Screen Protector",
+      "product_category": "Electronics",
+      "predicted_units": 720
+    },
+    {
+      "product_name": "Laptop Stand",
+      "product_category": "Office Supplies",
+      "predicted_units": 450
+    }
+  ]
+}
+```
+
+### REST API Parameters
+
+**For `/predict/sales`:**
+
 | Parameter   | Type    | Default | Description                                     |
 | ----------- | ------- | ------- | ----------------------------------------------- |
 | `top_n`     | integer | `3`     | Number of top categories to return (1–20).      |
+| `timeframe` | string  | `month` | Forecast horizon unit: `week`, `month`, `year`. |
+| `frame_k`   | integer | `1`     | Number of timeframe units to forecast (1–12).   |
+
+**For `/predict/products`:**
+
+| Parameter   | Type    | Default | Description                                     |
+| ----------- | ------- | ------- | ----------------------------------------------- |
+| `top_p`     | integer | `5`     | Number of top products to return (1–50).        |
 | `timeframe` | string  | `month` | Forecast horizon unit: `week`, `month`, `year`. |
 | `frame_k`   | integer | `1`     | Number of timeframe units to forecast (1–12).   |
 

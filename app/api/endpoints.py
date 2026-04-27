@@ -38,7 +38,7 @@ async def chat_endpoint(request: ChatRequest):
 
 
 @router.post(
-    "/predict",
+    "/predict/sales",
     response_model=PredictionResponse,
     summary="Predict top sales by category",
     description="Returns the top N predicted revenue categories for the next K units of the given timeframe. "
