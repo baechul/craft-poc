@@ -1,4 +1,4 @@
-# Craft — AI-Powered Sales Assistant
+# Craft — AI-Powered Sales Prediction
 
 A proof-of-concept application that combines a **LightGBM sales forecasting model** with a **GPT-4.1-mini agent** to answer natural-language queries about sales predictions. Built with FastAPI, LangChain, and Server-Sent Events (SSE) for real-time streaming responses.
 
