@@ -1,0 +1,88 @@
+@startuml
+title Entities for Sales Prediction and Related Business 
+
+hide circle
+skinparam linetype ortho
+skinparam backgroundColor #FFFFFF
+skinparam class {
+  BackgroundColor #F8FAFF
+  BorderColor #2F3B52
+  ArrowColor #2F3B52
+  FontColor #1A1A1A
+}
+
+entity "Product" as Product {
+  * product_id : string <<PK>>
+  --
+  name : string
+  category : string
+  unit_cost : decimal
+  unit_price : decimal
+  status : string
+}
+
+entity "SalesTransaction" as SalesTransaction {
+  * transaction_id : string <<PK>>
+  --
+  product_id : string <<FK>>
+  quantity : int
+  sold_at : timestamp
+  channel : string
+  region : string
+}
+
+entity "InventoryPosition" as InventoryPosition {
+  * position_id : string <<PK>>
+  --
+  product_id : string <<FK>>
+  on_hand_qty : int
+  reorder_point : int     /'threshold for reordering'/
+  lead_time_days : int    /'from ordering to receiving '/
+}
+
+entity "MarketingCampaign" as MarketingCampaign {
+  * campaign_id : string <<PK>>
+  --
+  channel : string
+  spend : decimal           /'budget'/
+  start_at : timestamp
+  end_at : timestamp
+  product_scope : string
+}
+
+entity "ProductForecastSnapshot" as ProductForecastSnapshot {
+  * forecast_id : string <<PK>>
+  --
+  product_id : string <<FK>>
+  timeframe_unit : string
+  timeframe_value : int
+  predicted_units : decimal
+  predicted_revenue : decimal
+  predicted_margin : decimal
+  generated_at : timestamp
+  model_version : string <<FK>>
+  data_snapshot_ts : timestamp
+}
+
+entity "ModelMetadata" as ModelMetadata {
+  * model_version : string <<PK>>
+  * data_snapshot_ts : timestamp <<PK>>
+  --
+  feature_schema_version : string
+}
+
+Product ||--o{ SalesTransaction : has
+Product ||--o{ InventoryPosition : has
+Product ||--o{ ProductForecastSnapshot : predicted_for
+ModelMetadata ||--o{ ProductForecastSnapshot : generates
+MarketingCampaign }o--o{ Product : targets
+SalesTransaction }o..o{ ProductForecastSnapshot : trains_or_validates
+
+/'
+note bottom of InventoryPosition
+  Inventory position can be simplified as on_hand_qty.
+  Advanced form: on_hand + on_order - reserved.
+end note
+'/
+
+@enduml

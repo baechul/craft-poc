@@ -1,0 +1,39 @@
+@startuml
+' Section 4: Request Sequence (Store-First + Live Fallback for Missing Timeframes)
+
+title Craft Product Prediction Service - Store-First + Live Fallback for Missing Timeframes
+
+autonumber
+skinparam backgroundColor #FFFFFF
+skinparam sequence {
+  ArrowColor #2F3B52
+  LifeLineBorderColor #2F3B52
+  LifeLineBackgroundColor #EEF3FF
+  ParticipantBorderColor #2F3B52
+  ParticipantBackgroundColor #F8FAFF
+  ParticipantFontColor #1A1A1A
+  ActorBorderColor #2F3B52
+  ActorBackgroundColor #FFF8DC
+}
+
+actor Client
+participant "Top Products Prediction Service" as API
+database "Prediction Store" as Store
+participant "Batch Pipeline" as Pipeline
+participant "Live Inference" as Live
+
+Pipeline -> Store: Write snapshot on model update\nor new sales data\n(keyed by timeframe + version)
+
+Client -> API: POST /predict/products\n{top_p, timeframe, frame_k}
+API -> Store: Query latest approved snapshot\nby (timeframe)
+
+alt snapshot found
+  Store --> API: Top K ranked products + version metadata
+  API --> Client: Ranked top products + metadata\n(source=store, version)
+else requested timeframe has no approved snapshot
+  API -> Live: Run independent predict_products inference\n{top_p, timeframe, frame_k}
+  Live --> API: Top K ranked products + version metadata
+  API --> Client: Ranked top products + metadata\n(source=live)
+end
+
+@enduml
